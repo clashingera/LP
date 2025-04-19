@@ -128,5 +128,5 @@ int main()
 }
 
 // Run Commands:
-// g++ -fopenmp -o parallel_bfs 1_Breadth_First_Search.cpp
+// g++ -fopenmp -o parallel_bfs 1A_BFS.cpp
 // .\parallel_bfs
