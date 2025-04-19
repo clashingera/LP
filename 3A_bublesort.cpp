@@ -59,5 +59,5 @@ int main()
 }
 
 // Run Commands:
-// g++ -fopenmp -o bubble_sort 3_bubble_sort.cpp
+// g++ -fopenmp -o bubble_sort 3A_bublesort.cpp
 // .\bubble_sort
