@@ -1,123 +1,116 @@
 //3_merge
-#include <iostream>
-#include <omp.h>
-#include <vector>
+#include <iostream>      // For standard input/output
+#include <stdlib.h>      // For general utilities (optional here)
+#include <omp.h>         // For OpenMP parallelism
 using namespace std;
 
-// Merge two sorted subarrays
-void merge(vector<int> &arr, int l, int m, int r)
+// Function declarations
+void mergesort(int a[], int i, int j);                   // Recursive merge sort
+void merge(int a[], int i1, int j1, int i2, int j2);     // Merge two sorted parts
+
+// Merge Sort Function using OpenMP sections
+void mergesort(int a[], int i, int j)
 {
-    int n1 = m - l + 1;
-    int n2 = r - m;
-
-    vector<int> L(n1), R(n2);
-    for (int i = 0; i < n1; i++)
-        L[i] = arr[l + i];
-    for (int j = 0; j < n2; j++)
-        R[j] = arr[m + 1 + j];
-
-    int i = 0, j = 0, k = l;
-
-    while (i < n1 && j < n2)
-        arr[k++] = (L[i] <= R[j]) ? L[i++] : R[j++];
-    while (i < n1)
-        arr[k++] = L[i++];
-    while (j < n2)
-        arr[k++] = R[j++];
-}
-
-// Sequential Merge Sort
-void mergeSortSequential(vector<int> &arr, int l, int r)
-{
-    if (l < r)
+    int mid;
+    if (i < j)                         // Base condition for recursion
     {
-        int m = l + (r - l) / 2;
-        mergeSortSequential(arr, l, m);
-        mergeSortSequential(arr, m + 1, r);
-        merge(arr, l, m, r);
+        mid = (i + j) / 2;             // Find mid point to divide the array
+
+        // Parallel sections to sort left and right halves concurrently
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            {
+                mergesort(a, i, mid);      // Recursive sort on left half
+            }
+
+            #pragma omp section
+            {
+                mergesort(a, mid + 1, j);  // Recursive sort on right half
+            }
+        }
+
+        merge(a, i, mid, mid + 1, j);      // Merge the two sorted halves
     }
 }
 
-// Parallel Merge Sort using OpenMP
-void mergeSortParallel(vector<int> &arr, int l, int r, int depth = 0)
+// Function to merge two sorted sub-arrays a[i1..j1] and a[i2..j2]
+void merge(int a[], int i1, int j1, int i2, int j2)
 {
-    if (l < r)
+    int temp[1000];      // Temporary array to hold merged result
+    int i = i1;          // Pointer for first sub-array
+    int j = i2;          // Pointer for second sub-array
+    int k = 0;           // Index for temp array
+
+    // Merge elements from both sub-arrays in sorted order
+    while (i <= j1 && j <= j2)
     {
-        int m = l + (r - l) / 2;
-
-        if (depth < 4)
-        { // Limit depth to avoid too many threads
-#pragma omp parallel sections
-            {
-#pragma omp section
-                mergeSortParallel(arr, l, m, depth + 1);
-
-#pragma omp section
-                mergeSortParallel(arr, m + 1, r, depth + 1);
-            }
+        if (a[i] < a[j])
+        {
+            temp[k++] = a[i++];
         }
         else
         {
-            mergeSortSequential(arr, l, m);
-            mergeSortSequential(arr, m + 1, r);
+            temp[k++] = a[j++];
         }
+    }
 
-        merge(arr, l, m, r);
+    // Copy remaining elements of first sub-array if any
+    while (i <= j1)
+    {
+        temp[k++] = a[i++];
+    }
+
+    // Copy remaining elements of second sub-array if any
+    while (j <= j2)
+    {
+        temp[k++] = a[j++];
+    }
+
+    // Copy sorted elements back to original array
+    for (i = i1, j = 0; i <= j2; i++, j++)
+    {
+        a[i] = temp[j];
     }
 }
 
+// Main function
 int main()
 {
-    std::cout << "Name: Girish Raut\tRoll No: 39\tDiv: B\n\n";
+    int *a, n, i;
 
-    int n;
-    cout << "Enter number of elements: ";
-    cin >> n;
+    cout << "\nEnter total number of elements => ";
+    cin >> n;                    // Take number of elements from user
+    a = new int[n];             // Dynamically allocate array of size n
 
-    vector<int> arr(n), arrSeq(n);
-
-    // User input for array elements
-    cout << "Enter the elements:\n";
-    for (int i = 0; i < n; i++)
+    cout << "\nEnter elements => ";
+    for (i = 0; i < n; i++)     // Input array elements
     {
-        cin >> arr[i];
+        cin >> a[i];
     }
-    arrSeq = arr; // Copy input for sequential sort
 
-    // Sequential sort timing
+    // Measure start time of parallel merge sort
     double start = omp_get_wtime();
-    mergeSortSequential(arrSeq, 0, n - 1);
-    double end = omp_get_wtime();
-    double seqTime = end - start;
 
-    // Parallel sort timing
-    start = omp_get_wtime();
-    mergeSortParallel(arr, 0, n - 1);
-    end = omp_get_wtime();
-    double parTime = end - start;
+    mergesort(a, 0, n - 1);     // Perform merge sort on entire array
 
-    // Output sorted array
-    cout << "\nSorted array:\n";
-    for (int i = 0; i < n; i++)
-        cout << arr[i] << " ";
-    cout << "\n";
+    // Measure stop time
+    double stop = omp_get_wtime();
 
-    // Calculate performance metrics
-    double speedup = seqTime / parTime;
-    int numThreads = omp_get_max_threads();
-    double efficiency = speedup / numThreads;
+    // Print the sorted array
+    cout << "\nSorted array is => ";
+    for (i = 0; i < n; i++)
+    {
+        cout << "\n" << a[i];
+    }
 
-    // Display metrics
-    cout << "\nPerformance Metrics:";
-    cout << "\n---------------------";
-    cout << "\nSequential Time: " << seqTime << " seconds";
-    cout << "\nParallel Time  : " << parTime << " seconds";
-    cout << "\nSpeedup        : " << speedup;
-    cout << "\nEfficiency     : " << efficiency << endl;
+    // Print total execution time
+    cout << "\n\nTime taken by parallel merge sort: " << stop - start << " seconds\n";
 
     return 0;
 }
 
+
 // Run Commands:
-// g++ -fopenmp -o merge_sort .\3B_Merge.cpp
-// .\merge_sort
+// g++ -fopenmp -o merge_sort 3B_Merge.cpp
+// ./merge_sort
