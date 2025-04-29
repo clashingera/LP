@@ -1,26 +1,29 @@
-//1A
+// 1A - Parallel BFS Traversal using OpenMP
 #include <iostream>
-#include <queue>
-#include <omp.h> // Required for OpenMP directives
+#include <queue>       // For using queue data structure in BFS
+#include <omp.h>       // Required to use OpenMP for parallel processing
 using namespace std;
 
+// Node structure for the binary tree
 class Node
 {
 public:
-    Node *left, *right;
-    int data;
+    Node *left, *right; // Left and right child pointers
+    int data;           // Data stored in the node
 };
 
+// Class to perform Breadth First Search and node insertion
 class BreadthFS
 {
 public:
-    Node *insert(Node *root, int data); // Insert a node into the tree
-    void bfs(Node *root);               // Perform parallel BFS
+    Node *insert(Node *root, int data); // Insert node into the binary tree
+    void bfs(Node *root);               // Perform parallel BFS traversal
 };
 
-// Insert a new node using level-order insertion
+// Function to insert a node into the binary tree using level-order logic
 Node *BreadthFS::insert(Node *root, int data)
 {
+    // If tree is empty, create a new root node
     if (!root)
     {
         root = new Node;
@@ -30,6 +33,7 @@ Node *BreadthFS::insert(Node *root, int data)
         return root;
     }
 
+    // Level-order traversal using queue to find first empty position
     std::queue<Node *> q;
     q.push(root);
 
@@ -38,6 +42,7 @@ Node *BreadthFS::insert(Node *root, int data)
         Node *current = q.front();
         q.pop();
 
+        // If left child is empty, insert node here
         if (!current->left)
         {
             current->left = new Node;
@@ -51,6 +56,7 @@ Node *BreadthFS::insert(Node *root, int data)
             q.push(current->left);
         }
 
+        // If right child is empty, insert node here
         if (!current->right)
         {
             current->right = new Node;
@@ -64,10 +70,10 @@ Node *BreadthFS::insert(Node *root, int data)
             q.push(current->right);
         }
     }
-    return root; // Ensures all control paths return a value
+    return root;
 }
 
-// Parallel BFS using OpenMP
+// Function to perform parallel BFS traversal using OpenMP
 void BreadthFS::bfs(Node *root)
 {
     if (!root)
@@ -78,21 +84,24 @@ void BreadthFS::bfs(Node *root)
 
     while (!q.empty())
     {
-        int level_size = q.size();
+        int level_size = q.size(); // Number of nodes at current level
 
-#pragma omp parallel for // Parallelize processing of nodes at the current level
+        // Parallel loop to process all nodes in current level
+#pragma omp parallel for
         for (int i = 0; i < level_size; i++)
         {
             Node *current = NULL;
 
-#pragma omp critical // Thread-safe access to the queue
+            // Access shared queue in critical section to avoid race conditions
+#pragma omp critical
             {
                 current = q.front();
                 q.pop();
                 cout << current->data << "\t";
             }
 
-#pragma omp critical // Thread-safe insertion of children
+            // Insert children in queue in a thread-safe way
+#pragma omp critical
             {
                 if (current->left)
                     q.push(current->left);
@@ -103,6 +112,7 @@ void BreadthFS::bfs(Node *root)
     }
 }
 
+// Main function: accepts user input to build the tree and then performs BFS
 int main()
 {
     BreadthFS bfs;
@@ -112,6 +122,7 @@ int main()
 
     cout << "\n\nName: Girish Raut\nRoll No.39 \t Div.B\n\n";
 
+    // Repeatedly take input from user to insert nodes
     do
     {
         cout << "Enter data: ";
@@ -121,12 +132,12 @@ int main()
         cin >> choice;
     } while (choice == 'y' || choice == 'Y');
 
+    // Perform BFS traversal
     cout << "BFS Traversal:\n";
     bfs.bfs(root);
 
     return 0;
 }
-
 // Run Commands:
 // g++ -fopenmp -o parallel_bfs 1A_BFS.cpp
-// .\parallel_bfs
+// ./parallel_bfs
